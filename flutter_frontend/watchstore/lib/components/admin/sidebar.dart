@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:watchstore/providers/auth_provider.dart';
+import 'package:watchstore/screens/admin/category.dart';
 
 class Sidebar extends StatelessWidget {
   final int selectedIndex;
@@ -45,7 +46,12 @@ class Sidebar extends StatelessWidget {
           leading: const Icon(Icons.category),
           title: const Text("Category"),
           selected: selectedIndex == 1,
-          onTap: () => onItemSelected(1),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CategoryPage()),
+            );
+          },
         ),
         ListTile(
           leading: const Icon(Icons.watch),
