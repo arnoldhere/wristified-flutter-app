@@ -1,0 +1,41 @@
+name: watchstore
+description: "watch store - ecommerce application using flutter and other modern tools"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  lottie: ^2.7.0
+  http: ^0.13.6
+  flutter_dotenv: ^5.1.0
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.0.0
+  provider: ^6.1.1
+  cupertino_icons: ^1.0.8
+  carousel_slider: ^5.1.1
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^5.0.0
+
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/animations/splash.json
+    - assets/images/banner01.jpg
+    - assets/images/banner02.png
+    - assets/images/banner03.jpg
+    - assets/images/banner04.jpg
+    - assets/images/wristified.jpg
+
+
