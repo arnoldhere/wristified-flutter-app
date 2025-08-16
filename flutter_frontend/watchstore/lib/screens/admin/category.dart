@@ -1,14 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:csv/csv.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-// Import web safe HTML APIs
-import 'package:universal_html/html.dart' as html;
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage({super.key});
@@ -23,7 +15,7 @@ class _CategoryPageState extends State<CategoryPage> {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController descCtrl = TextEditingController();
 
-  final String baseUrl = "http://192.168.1.78:5000/api/admin/category";
+  final String baseUrl = "http://192.168.1.78:5000/api/admin";
 
   @override
   void initState() {
@@ -33,16 +25,17 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Future<void> fetchCategories() async {
-    final res = await http.get(Uri.parse(baseUrl));
+    final res = await http.get(Uri.parse("$baseUrl/categories"));
     if (res.statusCode == 200) {
       setState(() {
-        categories = jsonDecode(res.body);
+        var data = jsonDecode(res.body);
+        categories = data['categories']; // use the correct key
       });
     }
   }
 
   Future<void> fetchCategoryCount() async {
-    final res = await http.get(Uri.parse("$baseUrl/count"));
+    final res = await http.get(Uri.parse("$baseUrl/categories"));
     if (res.statusCode == 200) {
       setState(() {
         totalCategories = jsonDecode(res.body)['count'];
@@ -52,7 +45,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
   Future<void> addCategory() async {
     final res = await http.post(
-      Uri.parse("$baseUrl/add"),
+      Uri.parse("$baseUrl/category/add"),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"name": nameCtrl.text, "description": descCtrl.text}),
     );
@@ -130,52 +123,6 @@ class _CategoryPageState extends State<CategoryPage> {
     fetchCategoryCount();
   }
 
-  Future<void> downloadCSV() async {
-    List<List<dynamic>> rows = [
-      ["ID", "Name", "Description", "Created At"],
-      ...categories.map(
-        (cat) => [
-          cat['id'],
-          cat['name'],
-          cat['description'],
-          cat['created_at'],
-        ],
-      ),
-    ];
-
-    String csvData = const ListToCsvConverter().convert(rows);
-
-    if (kIsWeb) {
-      // ✅ Web: trigger browser download
-      final bytes = utf8.encode(csvData);
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute("download", "categories.csv")
-        ..click();
-      html.Url.revokeObjectUrl(url);
-    } else {
-      // ✅ Mobile/Desktop: save to storage
-      if (Platform.isAndroid || Platform.isIOS) {
-        if (await Permission.storage.request().isGranted) {
-          final dir = await getExternalStorageDirectory();
-          final file = File("${dir!.path}/categories.csv");
-          await file.writeAsString(csvData);
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("CSV saved at ${file.path}")));
-        }
-      } else {
-        final dir = await getApplicationDocumentsDirectory();
-        final file = File("${dir.path}/categories.csv");
-        await file.writeAsString(csvData);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("CSV saved at ${file.path}")));
-      }
-    }
-  }
-
   void showAddCategoryDialog() {
     nameCtrl.clear();
     descCtrl.clear();
@@ -210,12 +157,7 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Manage Categories"),
-        actions: [
-          IconButton(onPressed: downloadCSV, icon: const Icon(Icons.download)),
-        ],
-      ),
+      appBar: AppBar(title: const Text("Manage Categories")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

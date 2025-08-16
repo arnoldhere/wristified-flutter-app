@@ -33,13 +33,13 @@ router.get("/get-users", async (req, res) => {
 // Get all categories
 router.get("/categories", async (req, res) => {
 	try {
-		const [rows] = await pool.query(
+		const [categories] = await pool.query(
 			"SELECT * FROM Category ORDER BY created_at DESC"
 		);
 		const [category_count] = await pool.query(
 			"SELECT COUNT(*) AS count FROM Category"
 		);
-		res.status(201).json({ rows, count: category_count[0].count });
+		res.status(200).json({ categories, count: category_count[0].count });
 	} catch (err) {
 		console.error(err);
 		res.status(500).json({ message: "Internal server error" });

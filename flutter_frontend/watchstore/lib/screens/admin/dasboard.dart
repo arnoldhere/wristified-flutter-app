@@ -1,20 +1,7 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:watchstore/components/admin/sidebar.dart';
 import 'package:watchstore/models/UserModel.dart';
 import 'package:watchstore/services/admin_service.dart';
-import 'package:csv/csv.dart';
-
-// Mobile/Desktop file saving
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-// Web download
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -41,64 +28,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     _countsFuture = AdminService.fetchCounts(context); // load counts
   }
 
-  /// 🔹 Export CSV (Works on Web + Mobile/Desktop)
-  Future<void> _exportUsersToCSV() async {
-    if (_filteredUsers.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("No users to export")));
-      return;
-    }
-
-    // Prepare CSV data
-    List<List<String>> csvData = [
-      ["ID", "First Name", "Last Name", "Email", "Phone", "Role"],
-      ..._filteredUsers.map(
-        (u) => [
-          u.id.toString(),
-          u.fname,
-          u.lname,
-          u.email,
-          u.phone ?? "-",
-          u.role,
-        ],
-      ),
-    ];
-    String csv = const ListToCsvConverter().convert(csvData);
-
-    if (kIsWeb) {
-      // For Web → download directly
-      final bytes = utf8.encode(csv);
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute("download", "users.csv")
-        ..click();
-      html.Url.revokeObjectUrl(url);
-    } else {
-      // For Mobile/Desktop → save file
-      var status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Storage permission denied")),
-        );
-        return;
-      }
-
-      final dir = await getExternalStorageDirectory();
-      final path = "${dir!.path}/users.csv";
-      final file = File(path);
-      await file.writeAsString(csv);
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("CSV saved at $path")));
-
-      // Open file after saving
-      await OpenFile.open(path);
-    }
-  }
-
   /// 🔹 Filters
   void _filterUsers(String query) {
     final results = _allUsers.where((user) {
@@ -121,11 +50,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
         bool isLargeScreen = constraints.maxWidth >= 900;
 
         return Scaffold(
-          appBar: isLargeScreen
-              ? null
-              : AppBar(title: const Text("Admin Dashboard")),
+          appBar: AppBar(
+            title: const Text("Admin Dashboard"),
+            // This will automatically show hamburger menu on smaller screens
+          ),
+          // Add drawer for smaller screens
+          drawer: !isLargeScreen
+              ? Drawer(
+                  child: Sidebar(
+                    selectedIndex: 0,
+                    onItemSelected: (index) {
+                      Navigator.pop(
+                        context,
+                      ); // Close drawer when item is selected
+                    },
+                  ),
+                )
+              : null,
           body: Row(
             children: [
+              // Show sidebar permanently on large screens
               if (isLargeScreen)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
@@ -234,15 +178,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                           ),
                                         ),
                                         const SizedBox(width: 10),
-                                        ElevatedButton.icon(
-                                          onPressed: _exportUsersToCSV,
-                                          icon: const Icon(Icons.download),
-                                          label: const Text("Export CSV"),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blue,
-                                            foregroundColor: Colors.white,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 10),
