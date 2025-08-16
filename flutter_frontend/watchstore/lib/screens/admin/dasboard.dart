@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:watchstore/components/admin/sidebar.dart';
 import 'package:watchstore/models/UserModel.dart';
-import 'package:watchstore/providers/auth_provider.dart';
 import 'package:watchstore/services/admin_service.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -15,14 +13,34 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   Future<List<UserModel>>? _usersFuture;
 
+  // For search & pagination
+  List<UserModel> _allUsers = [];
+  List<UserModel> _filteredUsers = [];
+  final TextEditingController _searchController = TextEditingController();
+
+  int _rowsPerPage = 5; // pagination: rows per page
+  int _currentPage = 0;
+
   @override
   void initState() {
     super.initState();
     _usersFuture = AdminService.fetchUsers();
   }
 
-  int _selectedIndex = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  /// Filters the user list based on search query
+  void _filterUsers(String query) {
+    final results = _allUsers.where((user) {
+      final name = "${user.fname} ${user.lname}".toLowerCase();
+      final email = user.email.toLowerCase();
+      return name.contains(query.toLowerCase()) ||
+          email.contains(query.toLowerCase());
+    }).toList();
+
+    setState(() {
+      _filteredUsers = results;
+      _currentPage = 0; // reset to first page on search
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,29 +49,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         bool isLargeScreen = constraints.maxWidth >= 900;
 
         return Scaffold(
-          key: _scaffoldKey,
           appBar: isLargeScreen
               ? null
-              : AppBar(
-                  title: const Text("Admin Dashboard"),
-                  leading: IconButton(
-                    icon: const Icon(Icons.menu),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                  ),
-                ),
-          drawer: isLargeScreen
-              ? null
-              : Drawer(
-                  child: Sidebar(
-                    selectedIndex: _selectedIndex,
-                    onItemSelected: (index) {
-                      setState(() => _selectedIndex = index);
-                      Navigator.pop(context); // close drawer on tap
-                    },
-                  ),
-                ),
+              : AppBar(title: const Text("Admin Dashboard")),
           body: Row(
             children: [
+              // Sidebar for large screens
               if (isLargeScreen)
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
@@ -64,21 +65,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       right: BorderSide(color: Colors.grey, width: 0.5),
                     ),
                   ),
-                  child: Sidebar(
-                    selectedIndex: _selectedIndex,
-                    onItemSelected: (index) {
-                      setState(() => _selectedIndex = index);
-                    },
-                  ),
+                  child: Sidebar(selectedIndex: 0, onItemSelected: (index) {}),
                 ),
+              // Main content area
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildStatsGrid(isLargeScreen),
-                      const SizedBox(height: 20),
+                      /// 🔹 Scorecards (centered at top)
+                      Align(
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
+                          child: _buildStatsGrid(isLargeScreen),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+
+                      /// 🔹 Users Table Section
                       FutureBuilder<List<UserModel>>(
                         future: _usersFuture,
                         builder: (context, snapshot) {
@@ -95,9 +101,54 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               snapshot.data!.isEmpty) {
                             return const Center(child: Text("No users found"));
                           } else {
-                            return isLargeScreen
-                                ? _buildUsersTable(snapshot.data!)
-                                : _buildUsersCards(snapshot.data!);
+                            // store data once fetched
+                            if (_allUsers.isEmpty) {
+                              _allUsers = snapshot.data!;
+                              _filteredUsers = _allUsers;
+                            }
+
+                            return Align(
+                              alignment: Alignment.center,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 1000,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    /// Search bar
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      child: TextField(
+                                        controller: _searchController,
+                                        onChanged: _filterUsers,
+                                        decoration: InputDecoration(
+                                          hintText: "Search users...",
+                                          prefixIcon: const Icon(Icons.search),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+
+                                    /// Users Table (desktop) with pagination
+                                    isLargeScreen
+                                        ? _buildPaginatedTable()
+                                        : _buildUsersCards(_filteredUsers),
+                                  ],
+                                ),
+                              ),
+                            );
                           }
                         },
                       ),
@@ -112,7 +163,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  /// Stats Cards Grid
+  /// 🔹 Scorecards Grid
   Widget _buildStatsGrid(bool isLargeScreen) {
     return GridView.count(
       shrinkWrap: true,
@@ -130,6 +181,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
+  /// 🔹 Single Stat Card
   Widget _buildStatCard(String title, String value, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -158,43 +210,81 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  /// Users Table (Desktop)
-  Widget _buildUsersTable(List<UserModel> users) {
-    return DataTable(
-      headingRowColor: MaterialStateColor.resolveWith(
-        (states) => Colors.indigo.shade50,
-      ),
-      columns: const [
-        DataColumn(label: Text("ID")),
-        DataColumn(label: Text("Name")),
-        DataColumn(label: Text("Email")),
-        DataColumn(label: Text("Phone")),
-        DataColumn(label: Text("Role")),
-      ],
-      rows: users.map((user) {
-        return DataRow(
-          cells: [
-            DataCell(Text(user.id.toString())),
-            DataCell(Text("${user.fname} ${user.lname}")),
-            DataCell(Text(user.email)),
-            DataCell(Text(user.phone ?? "-")),
-            DataCell(Text(user.role)),
+  /// 🔹 Paginated Users Table
+  Widget _buildPaginatedTable() {
+    // Slice the filteredUsers list based on pagination
+    final start = _currentPage * _rowsPerPage;
+    final end = (_currentPage + 1) * _rowsPerPage <= _filteredUsers.length
+        ? (_currentPage + 1) * _rowsPerPage
+        : _filteredUsers.length;
+
+    final pageUsers = _filteredUsers.sublist(start, end);
+
+    return Column(
+      children: [
+        // Table
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowColor: MaterialStateColor.resolveWith(
+              (states) => Colors.indigo.shade50,
+            ),
+            columns: const [
+              DataColumn(label: Text("ID")),
+              DataColumn(label: Text("Name")),
+              DataColumn(label: Text("Email")),
+              DataColumn(label: Text("Phone")),
+              DataColumn(label: Text("Role")),
+            ],
+            rows: pageUsers.map((user) {
+              return DataRow(
+                cells: [
+                  DataCell(Text(user.id.toString())),
+                  DataCell(Text("${user.fname} ${user.lname}")),
+                  DataCell(Text(user.email)),
+                  DataCell(Text(user.phone ?? "-")),
+                  DataCell(Text(user.role)),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Pagination controls
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.chevron_left),
+              onPressed: _currentPage > 0
+                  ? () => setState(() => _currentPage--)
+                  : null,
+            ),
+            Text(
+              "${_currentPage + 1} / "
+              "${(_filteredUsers.length / _rowsPerPage).ceil()}",
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              onPressed: end < _filteredUsers.length
+                  ? () => setState(() => _currentPage++)
+                  : null,
+            ),
           ],
-        );
-      }).toList(),
+        ),
+      ],
     );
   }
 
-  /// Users Cards (Mobile)
+  /// 🔹 Mobile: User Cards
   Widget _buildUsersCards(List<UserModel> users) {
     return Column(
       children: users.map((user) {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: CircleAvatar(
-              child: Text(user.fname[0]), // First letter
-            ),
+            leading: CircleAvatar(child: Text(user.fname[0])),
             title: Text("${user.fname} ${user.lname}"),
             subtitle: Text(user.email),
             trailing: Chip(
