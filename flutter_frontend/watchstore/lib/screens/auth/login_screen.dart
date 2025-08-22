@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:watchstore/providers/auth_provider.dart';
 import 'package:watchstore/services/auth_service.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -47,7 +46,6 @@ class _LoginFormState extends State<LoginForm> {
     final email = _emailOrUsername.text.trim();
     final password = _password.text.trim();
 
-    // input validation
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
@@ -61,10 +59,7 @@ class _LoginFormState extends State<LoginForm> {
 
     if (result['success']) {
       if (result['role'] == 'admin') {
-        Navigator.pushReplacementNamed(
-          context,
-          '/admin/dashboard',
-        ); // Admin route
+        Navigator.pushReplacementNamed(context, '/admin/dashboard');
       } else {
         Navigator.pushReplacementNamed(context, '/home');
       }
@@ -96,7 +91,7 @@ class _LoginFormState extends State<LoginForm> {
           ),
         ],
       ),
-    padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

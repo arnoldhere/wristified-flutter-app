@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:watchstore/constants/env.dart';
 
 class CategoryPage extends StatefulWidget {
   const CategoryPage({super.key});
@@ -15,7 +16,7 @@ class _CategoryPageState extends State<CategoryPage> {
   final TextEditingController nameCtrl = TextEditingController();
   final TextEditingController descCtrl = TextEditingController();
 
-  final String baseUrl = "http://192.168.1.78:5000/api/admin";
+  final String baseUrl = "$API_URL/admin";
 
   @override
   void initState() {
@@ -96,7 +97,7 @@ class _CategoryPageState extends State<CategoryPage> {
           ElevatedButton(
             onPressed: () async {
               final res = await http.put(
-                Uri.parse("$baseUrl/update/$id"),
+                Uri.parse("$baseUrl/category/update/$id"),
                 headers: {"Content-Type": "application/json"},
                 body: jsonEncode({
                   "name": nameCtrl.text,
@@ -117,8 +118,36 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
+  Future<void> confirmDeleteCategory(BuildContext context, int id) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirm Delete"),
+        content: const Text("Are you sure you want to delete this category?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await deleteCategory(id);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Category deleted successfully")),
+      );
+    }
+  }
+
   Future<void> deleteCategory(int id) async {
-    await http.delete(Uri.parse("$baseUrl/del/$id"));
+    await http.delete(Uri.parse("$baseUrl/category/del/$id"));
     fetchCategories();
     fetchCategoryCount();
   }
@@ -197,7 +226,9 @@ class _CategoryPageState extends State<CategoryPage> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => deleteCategory(cat['id']),
+                            onPressed: () {
+                              confirmDeleteCategory(context, cat['id']);
+                            },
                           ),
                         ],
                       ),

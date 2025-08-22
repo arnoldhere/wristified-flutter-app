@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -32,7 +31,7 @@ class AdminService {
       final List<dynamic> data = jsonDecode(response.body);
       return data
           .map((e) => UserModel.fromJson(e))
-          .toList(); // ✅ Proper parsing
+          .toList();
     } else {
       throw Exception("Failed to load users: ${response.body}");
     }

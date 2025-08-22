@@ -29,20 +29,21 @@ class AuthService {
       // handled response in case of Login process for saving data into shared preferences
       final res = jsonDecode(response.body);
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        // Save token & user in SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', res['token']);
-        await prefs.setString('user', jsonEncode(res['user']));
-        await prefs.setString('role', res['user']['role']);
-        // Get provider from context and update it
+
+        await prefs.setString('auth_token', res['token']);
+        await prefs.setString('user_name', res['user']['name']);
+        await prefs.setString('user_role', res['user']['role']);
+        // await prefs.setString('user_role', res['user']['role']);
+
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        authProvider.login(
+        await authProvider.login(
           res['user']['name'],
           res['user']['role'],
           res['token'],
         );
-        // return {'success': true};
-        return {'success': true, 'role': res['user']['role']}; // instead of just {'success': true}
+
+        return {'success': true, 'role': res['user']['role']};
       } else {
         return {'success': false, 'error': res['message'] ?? 'Login failed'};
       }

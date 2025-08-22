@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:watchstore/providers/auth_provider.dart';
+import 'package:watchstore/providers/category_provider.dart';
 import 'package:watchstore/providers/theme_provider.dart';
-import 'package:watchstore/routes/app_routes.dart';
 import 'package:watchstore/routes/route_generator.dart';
-// import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:watchstore/services/wrapper.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final authProvider = AuthProvider();
-  await authProvider.tryAutoLogin();
+  await authProvider.tryAutoLogin(); // Restore session
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => CategoryProvider()), // ✅
       ],
       child: const WristifiedApp(),
     ),
@@ -33,7 +35,6 @@ class WristifiedApp extends StatelessWidget {
       title: 'Wristified',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
-      // <-- switch based on provider
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         brightness: Brightness.light,
@@ -44,12 +45,9 @@ class WristifiedApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
         useMaterial3: true,
       ),
-      initialRoute: AppRoutes.splash,
+      home: const Wrapper(),
+      // ✅ handles login persistence
       onGenerateRoute: RouteGenerator.generateRoute,
-      onUnknownRoute: (settings) => MaterialPageRoute(
-        builder: (_) =>
-            const Scaffold(body: Center(child: Text("Page not found"))),
-      ),
     );
   }
 }

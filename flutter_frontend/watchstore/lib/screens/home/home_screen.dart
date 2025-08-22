@@ -8,18 +8,28 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          const Navbar(), // Top navigation bar
-          CarouselSection(), //  Watch highlight carousel
-          const CollectionPanel(), // collection panel for various watch categories
-         const SizedBox(height: 30),
-          // Add more sections here
-        ],
+      body: SingleChildScrollView(
+        // ✅ makes the whole page scrollable
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Navbar(), // Top navigation bar
+            CarouselSection(), // Watch highlight carousel
+            const SizedBox(height: 20),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                "Shop by Category",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const CollectionPanel(), // ✅ pills instead of grid
+            const SizedBox(height: 30),
+          ],
+        ),
       ),
     );
   }
