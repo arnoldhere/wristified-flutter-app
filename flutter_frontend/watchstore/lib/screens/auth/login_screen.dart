@@ -124,7 +124,8 @@ class _LoginFormState extends State<LoginForm> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () {},
+              onPressed: () =>
+                  Navigator.pushReplacementNamed(context, '/forgot-password'),
               child: const Text('Forgot Password?'),
             ),
           ),

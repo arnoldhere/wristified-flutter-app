@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:watchstore/screens/admin/dasboard.dart';
+import 'package:watchstore/screens/auth/forgot_password_screen.dart';
 import 'package:watchstore/screens/auth/login_screen.dart';
+import 'package:watchstore/screens/auth/new_password_screen.dart';
+import 'package:watchstore/screens/auth/otp_screen.dart';
 import 'package:watchstore/screens/auth/signup_screen.dart';
 import 'package:watchstore/screens/splash/splash_screen.dart';
 import 'package:watchstore/screens/home/home_screen.dart';
@@ -19,6 +22,12 @@ class RouteGenerator {
         return MaterialPageRoute(builder: (_) => const SignupScreen());
       case AppRoutes.adminDashboard:
         return MaterialPageRoute(builder: (_) => const AdminDashboard());
+      case AppRoutes.forgotPassword:
+        return MaterialPageRoute(builder: (_) => ForgotPasswordScreen());
+      case AppRoutes.newpassword:
+        return MaterialPageRoute(builder: (_) => const NewPasswordScreen());
+      case AppRoutes.otpscreen:
+        return MaterialPageRoute(builder: (_) => OtpScreen());
 
       default:
         return MaterialPageRoute(
